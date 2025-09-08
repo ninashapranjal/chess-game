@@ -1,0 +1,291 @@
+abstract class Piece {
+  private Location location;
+  private int c; // 0 == black, 1 == white
+  private PImage img;
+
+  public Piece(Location location, int c, PImage img) {
+    this.location = location;
+    this.c = c;
+    this.img = img;
+  }
+
+  public int getC() {
+    return c;
+  }
+
+  public void setLocation(Location location) {
+    this.location = location;
+  }
+
+  public Location getLocation() {
+    return location;
+  }
+
+  public PImage getImg() {
+    return img;
+  }
+
+  public abstract ArrayList<Location> getPossibleMoves(Piece[][] board);
+
+  @Override
+    public abstract Piece clone();
+
+  protected boolean isValidLocation(int row, int col) {
+    return row >= 0 && row < 8 && col >= 0 && col < 8;
+  }
+}
+
+
+public class Pawn extends Piece {
+  public Pawn(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+
+    int direction;
+    if (getC() == 0) {
+      direction = 1;
+    } else {
+      direction = -1;
+    }
+
+    int newRow = getLocation().row + direction;
+    int newCol = getLocation().col;
+    if (isValidLocation(newRow, newCol) && board[newRow][newCol] == null) {
+      possibleMoves.add(new Location(newRow, newCol));
+    }
+
+    // this check for captures, only after a single-square move would be possible so no double capture stuff
+    if (isValidLocation(newRow, newCol + 1) && board[newRow][newCol + 1] != null && board[newRow][newCol + 1].getC() != getC()) {
+      possibleMoves.add(new Location(newRow, newCol + 1));
+    }
+
+    if (isValidLocation(newRow, newCol - 1) && board[newRow][newCol - 1] != null && board[newRow][newCol - 1].getC() != getC()) {
+      possibleMoves.add(new Location(newRow, newCol - 1));
+    }
+
+    if (getC() == 0) {
+      if (getLocation().getRow() == 1) {
+        newRow = getLocation().getRow() + 2 * direction;
+        if (isValidLocation(newRow, newCol) && board[newRow][newCol] == null && board[newRow - direction][newCol] == null) {
+          possibleMoves.add(new Location(newRow, newCol));
+        }
+      }
+    } else {
+      if (getLocation().getRow() == 6) {
+        newRow = getLocation().getRow() + 2 * direction;
+        if (isValidLocation(newRow, newCol) && board[newRow][newCol] == null && board[newRow - direction][newCol] == null) {
+          possibleMoves.add(new Location(newRow, newCol));
+        }
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public Pawn clone() {
+    return new Pawn(getLocation(), getC(), getImg());
+  }
+}
+
+
+
+public class Knight extends Piece {
+  public Knight(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+
+    int row = getLocation().row;
+    int col = getLocation().col;
+
+    int[][] knightMoves = {
+      {row + 1, col + 2}, {row + 1, col - 2},
+      {row - 1, col + 2}, {row - 1, col - 2},
+      {row + 2, col + 1}, {row + 2, col - 1},
+      {row - 2, col + 1}, {row - 2, col - 1}
+    };
+
+    for (int[] move : knightMoves) {
+      int newRow = move[0];
+      int newCol = move[1];
+      if (isValidLocation(newRow, newCol) && (board[newRow][newCol] == null || board[newRow][newCol].getC() != getC())) {
+        possibleMoves.add(new Location(newRow, newCol));
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public Knight clone() {
+    return new Knight(getLocation(), getC(), getImg());
+  }
+}
+
+
+
+public class Bishop extends Piece {
+  public Bishop(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+
+    int row = getLocation().row;
+    int col = getLocation().col;
+
+    int[][] bishopMoves = {
+      {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    };
+
+    for (int[] move : bishopMoves) {
+      int dRow = move[0];
+      int dCol = move[1];
+      int newRow = row + dRow;
+      int newCol = col + dCol;
+      while (isValidLocation(newRow, newCol)) {
+        if (board[newRow][newCol] == null) {
+          possibleMoves.add(new Location(newRow, newCol));
+        } else if (board[newRow][newCol].getC() != getC()) {
+          possibleMoves.add(new Location(newRow, newCol));
+          break;
+        } else {
+          break;
+        }
+        newRow += dRow;
+        newCol += dCol;
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public Bishop clone() {
+    return new Bishop(getLocation(), getC(), getImg());
+  }
+}
+
+
+
+public class Rook extends Piece {
+  public Rook(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+
+    int row = getLocation().row;
+    int col = getLocation().col;
+
+    int[][] rookMoves = {
+      {1, 0}, {-1, 0}, {0, 1}, {0, -1}
+    };
+
+    for (int[] move : rookMoves) {
+      int dRow = move[0];
+      int dCol = move[1];
+      int newRow = row + dRow;
+      int newCol = col + dCol;
+      while (isValidLocation(newRow, newCol)) {
+        if (board[newRow][newCol] == null) {
+          possibleMoves.add(new Location(newRow, newCol));
+        } else if (board[newRow][newCol].getC() != getC()) {
+          possibleMoves.add(new Location(newRow, newCol));
+          break;
+        } else {
+          break;
+        }
+        newRow += dRow;
+        newCol += dCol;
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public Rook clone() {
+    return new Rook(getLocation(), getC(), getImg());
+  }
+}
+
+
+
+public class Queen extends Piece {
+  public Queen(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+
+    int row = getLocation().row;
+    int col = getLocation().col;
+
+    int[][] queenMoves = {
+      {1, 0}, {-1, 0}, {0, 1}, {0, -1}, // this for the rook moves
+      {1, 1}, {1, -1}, {-1, 1}, {-1, -1} // this for the bishop moves
+    };
+
+    for (int[] move : queenMoves) {
+      int dRow = move[0];
+      int dCol = move[1];
+      int newRow = row + dRow;
+      int newCol = col + dCol;
+      while (isValidLocation(newRow, newCol)) {
+        if (board[newRow][newCol] == null) {
+          possibleMoves.add(new Location(newRow, newCol));
+        } else if (board[newRow][newCol].getC() != getC()) {
+          possibleMoves.add(new Location(newRow, newCol));
+          break;
+        } else {
+          break;
+        }
+        newRow += dRow;
+        newCol += dCol;
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public Queen clone() {
+    return new Queen(getLocation(), getC(), getImg());
+  }
+}
+
+
+
+public class King extends Piece {
+  public King(Location location, int c, PImage img) {
+    super(location, c, img);
+  }
+
+  public ArrayList<Location> getPossibleMoves(Piece[][] board) {
+    ArrayList<Location> possibleMoves = new ArrayList<>();
+    int[][] directions = {
+      {1, 0}, {1, 1}, {0, 1}, {-1, 1},
+      {-1, 0}, {-1, -1}, {0, -1}, {1, -1}
+    };
+
+    for (int[] x : directions) {
+      int newRow = getLocation().row + x[0];
+      int newCol = getLocation().col + x[1];
+      if (isValidLocation(newRow, newCol) && (board[newRow][newCol] == null || board[newRow][newCol].getC() != getC())) {
+        possibleMoves.add(new Location(newRow, newCol));
+      }
+    }
+
+    return possibleMoves;
+  }
+
+  public King clone() {
+    return new King(getLocation(), getC(), getImg());
+  }
+}
