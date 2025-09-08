@@ -1,0 +1,489 @@
+PImage whiteKing;
+PImage blackKing;
+PImage whiteQueen;
+PImage blackQueen;
+PImage whiteBishop;
+PImage blackBishop;
+PImage whiteKnight;
+PImage blackKnight;
+PImage whiteRook;
+PImage blackRook;
+PImage whitePawn;
+PImage blackPawn;
+
+private Piece[][] board;
+private int currentPlayer;
+private Location selectedLocation;
+private int size = 100;
+private ArrayList<Location> possibleMoves = new ArrayList<>();
+private boolean gameOver = false;
+private boolean check = false;
+private boolean checkmate = false;
+private boolean showCantKeepInCheckMessage = false;
+
+public void setup() {
+  size(800, 800);
+
+  board = new Piece[8][8];
+  currentPlayer = 1;  //we start off with white here
+  selectedLocation = null;
+
+  whiteKing = loadImage("whiteKing.png");
+  blackKing = loadImage("blackKing.png");
+  whiteQueen = loadImage("whiteQueen.png");
+  blackQueen = loadImage("blackQueen.png");
+  whiteBishop = loadImage("whiteBishop.png");
+  blackBishop = loadImage("blackBishop.png");
+  whiteKnight = loadImage("whiteKnight.png");
+  blackKnight = loadImage("blackKnight.png");
+  whiteRook = loadImage("whiteRook.png");
+  blackRook = loadImage("blackRook.png");
+  whitePawn = loadImage("whitePawn.png");
+  blackPawn = loadImage("blackPawn.png");
+
+  whiteKing.resize(width/8, width/8);
+  blackKing.resize(width/8, width/8);
+  whiteQueen.resize(width/8, width/8);
+  blackQueen.resize(width/8, width/8);
+  whiteBishop.resize(width/8, width/8);
+  blackBishop.resize(width/8, width/8);
+  whiteKnight.resize(width/8, width/8);
+  blackKnight.resize(width/8, width/8);
+  whiteRook.resize(width/8, width/8);
+  blackRook.resize(width/8, width/8);
+  whitePawn.resize(width/8, width/8);
+  blackPawn.resize(width/8, width/8);
+
+  // Pawns
+  for (int col = 0; col < 8; col++) {
+    board[6][col] = new Pawn(new Location(6, col), 1, whitePawn);
+    board[1][col] = new Pawn(new Location(1, col), 0, blackPawn);
+  }
+
+  // Rooks
+  board[7][0] = new Rook(new Location(7, 0), 1, whiteRook);
+  board[7][7] = new Rook(new Location(7, 7), 1, whiteRook);
+  board[0][0] = new Rook(new Location(0, 0), 0, blackRook);
+  board[0][7] = new Rook(new Location(0, 7), 0, blackRook);
+
+  // Knights
+  board[7][1] = new Knight(new Location(7, 1), 1, whiteKnight);
+  board[7][6] = new Knight(new Location(7, 6), 1, whiteKnight);
+  board[0][1] = new Knight(new Location(0, 1), 0, blackKnight);
+  board[0][6] = new Knight(new Location(0, 6), 0, blackKnight);
+
+  // Bishops
+  board[7][2] = new Bishop(new Location(7, 2), 1, whiteBishop);
+  board[7][5] = new Bishop(new Location(7, 5), 1, whiteBishop);
+  board[0][2] = new Bishop(new Location(0, 2), 0, blackBishop);
+  board[0][5] = new Bishop(new Location(0, 5), 0, blackBishop);
+
+  // Queens
+  board[7][3] = new Queen(new Location(7, 3), 1, whiteQueen);
+  board[0][3] = new Queen(new Location(0, 3), 0, blackQueen);
+
+  // Kings
+  board[7][4] = new King(new Location(7, 4), 1, whiteKing);
+  board[0][4] = new King(new Location(0, 4), 0, blackKing);
+}
+
+public void draw() {
+  drawBoard();
+  drawPieces();
+  highlightPossibleMoves();
+
+  if (check) {
+    fill(255, 0, 0);
+    textAlign(CENTER, CENTER);
+    textSize(80);
+    text("CHECK", width / 2, height / 2);
+  }
+
+  if (gameOver) {
+    fill(255, 0, 0);
+    textAlign(CENTER, CENTER);
+    textSize(80);
+    text("CHECKMATE", width / 2, height / 2);
+  }
+
+  if (showCantKeepInCheckMessage) {
+    if (check) {
+      fill(255, 0, 0);
+      textAlign(CENTER, CENTER);
+      textSize(50);
+      text("Can't Keep King In Check", width / 2, (2*height) / 3);
+    }
+  }
+}
+
+private void drawBoard() {
+  color lightSquareColor = color(255, 206, 158);
+  color darkSquareColor = color(159, 106, 58);
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      if ((row + col) % 2 == 0) {
+        fill(lightSquareColor);
+      } else {
+        fill(darkSquareColor);
+      }
+      rect(col * size, row * size, size, size);
+    }
+  }
+}
+
+private void drawPieces() { //just for recursion ew
+  drawPiecesRow(0);
+}
+
+private void drawPiecesRow(int row) {
+  if (row >= 8) {
+    return;
+  }
+  drawPiecesCol(row, 0);
+  drawPiecesRow(row + 1);
+}
+
+private void drawPiecesCol(int row, int col) {
+  if (col >= 8) {
+    return;
+  }
+  if (board[row][col] != null) {
+    PImage pieceImage = getImageForPiece(board[row][col]);
+    if (pieceImage != null) {
+      image(pieceImage, col * size, row * size);
+    }
+  }
+  drawPiecesCol(row, col + 1);
+}
+
+private PImage getImageForPiece(Piece piece) {
+  if (piece instanceof King) {
+    if (piece.getC() == 0) {
+      return blackKing;
+    } else {
+      return whiteKing;
+    }
+  }
+  if (piece instanceof Queen) {
+    if (piece.getC() == 0) {
+      return blackQueen;
+    } else {
+      return whiteQueen;
+    }
+  }
+  if (piece instanceof Bishop) {
+    if (piece.getC() == 0) {
+      return blackBishop;
+    } else {
+      return whiteBishop;
+    }
+  }
+  if (piece instanceof Knight) {
+    if (piece.getC() == 0) {
+      return blackKnight;
+    } else {
+      return whiteKnight;
+    }
+  }
+  if (piece instanceof Rook) {
+    if (piece.getC() == 0) {
+      return blackRook;
+    } else {
+      return whiteRook;
+    }
+  }
+  if (piece instanceof Pawn) {
+    if (piece.getC() == 0) {
+      return blackPawn;
+    } else {
+      return whitePawn;
+    }
+  }
+  return null;
+}
+
+
+private void highlightPossibleMoves() {
+  fill(0, 255, 0, 100);
+  for (Location loc : possibleMoves) {
+    rect(loc.getCol() * size, loc.getRow() * size, size, size);
+  }
+}
+
+
+public void mousePressed() {
+  int col = mouseX / size;
+  int row = mouseY / size;
+
+  if (isValidLocation(row, col)) {
+    Piece clickedPiece = board[row][col];
+
+    if (clickedPiece != null && clickedPiece.getC() == currentPlayer) {
+      selectedLocation = new Location(row, col);
+      possibleMoves = clickedPiece.getPossibleMoves(board);
+
+      //filtering this is from google and processing.org
+      possibleMoves.removeIf(move -> isMoveKeepsOwnKingInCheck(selectedLocation, move));
+
+      if (possibleMoves.isEmpty()) {
+        showCantKeepInCheckMessage = true;
+        selectedLocation = null;
+      } else {
+        showCantKeepInCheckMessage = false;
+        System.out.println("Possible Moves:");
+        for (Location move : possibleMoves) {
+          System.out.println("(" + move.getRow() + ", " + move.getCol() + ")");
+        }
+      }
+    } else if (selectedLocation != null && isMovePossible(row, col)) {
+      makeMove(selectedLocation, new Location(row, col));
+      selectedLocation = null;
+      possibleMoves.clear();
+      currentPlayer = 1 - currentPlayer;
+
+      if (isKingInCheck(currentPlayer)) {
+        check = true;
+      } else {
+        check = false;
+      }
+
+      if (isCheckmate(currentPlayer)) {
+        checkmate = true;
+        gameOver = true;
+      } else if (isStalemate(currentPlayer)) {
+        gameOver = true;
+      }
+    }
+  }
+}
+
+
+
+private boolean isMoveKeepsOwnKingInCheck(Location initialPos, Location finalPos) {
+  Piece[][] tempBoard = copyBoard(board);
+  makeMoveOnTempBoard(tempBoard, initialPos, finalPos);
+  Location ownKingLocation = findKing(currentPlayer, tempBoard);
+  return isKingInCheck(currentPlayer, ownKingLocation, tempBoard);
+}
+
+private boolean isValidLocation(int row, int col) {
+  return row >= 0 && row < 8 && col >= 0 && col < 8;
+}
+
+private boolean isMovePossible(int row, int col) {
+  for (Location l : possibleMoves) {
+    if (l.row == row && l.col == col) {
+      return true;
+    }
+  }
+  return false;
+}
+
+public void makeMove(Location initialPos, Location finalPos) {
+  Piece clickedPiece = board[initialPos.getRow()][initialPos.getCol()];
+
+  if (clickedPiece.getPossibleMoves(board).contains(finalPos)) {
+    System.out.println("CLICKED PIECE contains finalpos");
+  } else {
+    System.out.println("CLICKED PIECE DOES NOT contains finalpos");
+  }
+
+  print(clickedPiece.getPossibleMoves(board)); //DEBUGGING
+
+  if (clickedPiece != null && clickedPiece.getC() == currentPlayer && clickedPiece.getPossibleMoves(board).contains(finalPos)) {
+
+    Piece temp = board[finalPos.getRow()][finalPos.getCol()];
+    board[finalPos.getRow()][finalPos.getCol()] = clickedPiece;
+    board[initialPos.getRow()][initialPos.getCol()] = null;
+    clickedPiece.setLocation(finalPos);
+
+    if (isKingInCheck(currentPlayer)) {
+      // go back to before
+      board[initialPos.getRow()][initialPos.getCol()] = clickedPiece;
+      board[finalPos.getRow()][finalPos.getCol()] = temp;
+      clickedPiece.setLocation(initialPos);
+      return;
+    }
+
+    if (isCheckmate(1 - currentPlayer)) {
+      checkmate = true;
+      gameOver = true;
+    } else if (isStalemate(1 - currentPlayer)) {
+      gameOver = true;
+    } else if (isKingInCheck(1 - currentPlayer)) {
+      check = true;
+    } else {
+      check = false;
+    }
+
+    printBoard(); //DEBUGGING
+
+    clearPiecePosition(initialPos);
+
+    PImage pieceImage = getImageForPiece(clickedPiece);
+    int newX = finalPos.getCol() * size;
+    int newY = finalPos.getRow() * size;
+    image(pieceImage, newX, newY, size, size);
+  }
+}
+
+
+
+private void clearPiecePosition(Location pos) {
+  int x = pos.getCol() * size;
+  int y = pos.getRow() * size;
+  color lightSquareColor = color(255, 206, 158);
+  color darkSquareColor = color(159, 106, 58);
+  if ((pos.getRow() + pos.getCol()) % 2 == 0) {
+    fill(lightSquareColor);
+  } else {
+    fill(darkSquareColor);
+  }
+  rect(x, y, size, size);
+}
+
+
+private boolean isKingInCheck(int player) {
+  Location kingLocation = findKing(player);
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece != null && piece.getC() != player) {
+        if (piece.getPossibleMoves(board).contains(kingLocation)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+private Location findKing(int player) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece instanceof King && piece.getC() == player) {
+        return piece.getLocation();
+      }
+    }
+  }
+  return null; // Will never actually happen but keep just in case
+}
+
+private Location findKing(int player, Piece[][] board) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece instanceof King && piece.getC() == player) {
+        return new Location(row, col);
+      }
+    }
+  }
+  return null; // should never happen
+}
+
+private boolean isKingInCheck(int player, Location kingLocation, Piece[][] board) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece != null && piece.getC() != player) {
+        ArrayList<Location> possibleMoves = piece.getPossibleMoves(board);
+        for (Location move : possibleMoves) {
+          if (move.equals(kingLocation)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+private Location findKingLocation(int player) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece instanceof King && piece.getC() == player) {
+        return new Location(row, col);
+      }
+    }
+  }
+  return null;
+}
+
+
+
+private boolean isCheckmate(int player) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece != null && piece.getC() == player) {
+        ArrayList<Location> possibleMoves = piece.getPossibleMoves(board);
+        for (Location move : possibleMoves) {
+          Piece[][] tempBoard = copyBoard(board);
+          makeMoveOnTempBoard(tempBoard, new Location(row, col), move);
+          if (!isKingInCheck(player, findKingLocation(player), tempBoard)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+
+private boolean isStalemate(int player) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = board[row][col];
+      if (piece != null && piece.getC() == player) {
+        ArrayList<Location> possibleMoves = piece.getPossibleMoves(board);
+        for (Location move : possibleMoves) {
+          Piece[][] tempBoard = copyBoard(board);
+          makeMoveOnTempBoard(tempBoard, new Location(row, col), move);
+          if (!isKingInCheck(player, findKingLocation(player), tempBoard)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+private Piece[][] copyBoard(Piece[][] originalBoard) {
+  Piece[][] newBoard = new Piece[8][8];
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      Piece piece = originalBoard[row][col];
+      if (piece != null) {
+        newBoard[row][col] = piece.clone();
+      }
+    }
+  }
+  return newBoard;
+}
+
+private void makeMoveOnTempBoard(Piece[][] tempBoard, Location initialPos, Location finalPos) {
+  Piece movingPiece = tempBoard[initialPos.row][initialPos.col];
+  tempBoard[finalPos.row][finalPos.col] = movingPiece;
+  tempBoard[initialPos.row][initialPos.col] = null;
+  movingPiece.setLocation(finalPos);
+}
+
+
+
+private void printBoard() {  //DEBUGGING
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      if (board[row][col] == null) {
+        System.out.print(" - ");
+      } else {
+        System.out.print(" " + board[row][col].getClass().getSimpleName().charAt(0) + " ");
+      }
+    }
+    System.out.println();
+  }
+  System.out.println();
+}
