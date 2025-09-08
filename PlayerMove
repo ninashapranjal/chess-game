@@ -1,0 +1,17 @@
+public class PlayerMove {
+  private Location initialPos;
+  private Location finalPos;
+
+  public PlayerMove(Location initialPos, Location finalPos) {
+    this.initialPos = initialPos;
+    this.finalPos = finalPos;
+  }
+
+  public Location getFrom() {
+    return initialPos;
+  }
+
+  public Location getTo() {
+    return finalPos;
+  }
+}
