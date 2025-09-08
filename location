@@ -25,4 +25,3 @@ public class Location {
     return this.row == other.row && this.col == other.col;
   }
 }
-//so basically according to google you need this cause by default .contains uses equals method to determine if an object is in a list, so you goota override it in your location class
